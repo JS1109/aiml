@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIML</title>
+</head>
+<body>
+    <pre>
+        #find s
+
+import pandas as pd
+import numpy as np
+
+data = pd.read_csv("data.csv")
+print(data,"n")
+
+data = np.array(data)[:,:-1]
+print("n The attributes are: ",d)
+
+target = np.array(data)[:,-1]
+print("n The target is: ",target)
+
+def train(c,t):
+    for i, val in enumerate(t):
+        if val == "Yes":
+            specific_hypothesis = c[i].copy()
+            break
+
+    for i, val in enumerate(c):
+        if t[i] == "Yes":
+            for x in range(len(specific_hypothesis)):
+                if val[x] != specific_hypothesis[x]:
+                    specific_hypothesis[x] = '?'
+                else:
+                    pass
+
+    return specific_hypothesis
+
+print("n The final hypothesis is:",train(data,target))
+    </pre><hr>
+    <pre>
+        #knn
+
+import pandas as pd
+import numpy as np
+arr=pd.read_csv('iris.csv')
+x=arr.drop('Id',axis="columns")
+a=np.array(x)
+res={}
+row=len(a)
+col=len(a[0])
+print("enter test sample")
+test=[]
+for i in range(col-1):
+    test.append(float(input()))
+for i in range(row):
+    dist=0
+    for j in range(col-1):
+        dist=dist+(test[j]-a[i][j])**2
+    res[dist]=a[i][col-1]
+res=dict(sorted(res.items()))
+print("enter k value")
+k=int(input())
+result=list(res.items())[:k]
+print(result)
+setosa=0
+vercol=0
+vir=0
+for i in range(k):
+    if result[i][1]=='Iris-setosa':
+        setosa+=1
+    elif result[i][1]=='Iris-versicolor':
+        vercol+=1
+    elif result[i][1]=='Iris-virginica':
+        vir+=1
+if max(setosa,vercol,vir)==setosa:
+ print("setosa")
+elif max(setosa,vercol,vir)==vercol:
+ print("versicolor")
+elif max(setosa,vercol,vir)==vir:
+ print("virginia")
+    </pre><hr>
+    <pre>
+        #locally weighted regression
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+df = pd.read_csv('tips.csv')
+features = np.array(df.total_bill)
+labels = np.array(df.tip)
+
+def kernel(data, point, xmat, k):
+   m,n = np.shape(xmat)
+   ws = np.mat(np.eye((m)))
+   for j in range(m):
+      diff = point - data[j]
+      ws[j,j] = np.exp(diff*diff.T/(-2.0*k**2))
+   return ws
+
+def local_weight(data, point, xmat, ymat, k):
+   wei = kernel(data, point, xmat, k)
+   return (data.T*(wei*data)).I*(data.T*(wei*ymat.T))
+
+def local_weight_regression(xmat, ymat, k):
+   m,n = np.shape(xmat)
+   ypred = np.zeros(m)
+   for i in range(m):
+      ypred[i] = xmat[i]*local_weight(xmat, xmat[i],xmat,ymat,k)
+   return ypred
+
+m = features.shape[0]
+mtip = np.mat(labels)
+data = np.hstack((np.ones((m, 1)), np.mat(features).T))
+
+ypred = local_weight_regression(data, mtip, 0.5)
+indices = data[:,1].argsort(0)
+xsort = data[indices][:,0]
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.scatter(features, labels, color='blue')
+ax.plot(xsort[:,1],ypred[indices], color = 'red', linewidth=3)
+plt.xlabel('Total bill')
+plt.ylabel('Tip')
+plt.show()
+    </pre><hr>
+    <pre>
+        #decision tree
+import pandas as pd
+from sklearn.preprocessing import LabelEncoder
+from sklearn import tree
+
+df = pd.read_csv('salaries.csv')
+df.head()
+inputs = df.drop('salary_more_then_100k',axis = 'columns')
+target = df['salary_more_then_100k']
+
+le_company = LabelEncoder()
+le_job = LabelEncoder()
+le_degree = LabelEncoder()
+inputs['company_n'] = le_company.fit_transform(inputs['company'])
+inputs['job_n'] = le_job.fit_transform(inputs['job'])
+inputs['degree_n'] = le_degree.fit_transform(inputs['degree'])
+inputs.head()
+inputs_n = inputs.drop(['company','job','degree'],axis='columns')
+inputs_n
+
+model = tree.DecisionTreeClassifier()
+model.fit(inputs_n,target)
+model.score(inputs_n,target)
+model.predict([[2,1,0]])
+model.predict([[2,1,1]])
+    </pre><hr>
+    <pre>
+        #perceptron
+import numpy as np
+def unitStep(v):
+    if v >= 0:
+        return 1
+    else:
+        return 0
+
+def perceptronModel(x, w, b):
+    v = np.dot(w, x) + b
+    y = unitStep(v)
+    return y
+
+def NOT_logicFunction(x):
+    wNOT = -1
+    bNOT = 0.5
+    return perceptronModel(x, wNOT, bNOT)
+
+def AND_logicFunction(x):
+    w = np.array([1, 1])
+    bAND = -1.5
+    return perceptronModel(x, w, bAND)
+
+def OR_logicFunction(x):
+    w = np.array([1, 1])
+    bOR = -0.5
+    return perceptronModel(x, w, bOR)
+
+def XOR_logicFunction(x):
+    y1 = AND_logicFunction(x)
+    y2 = OR_logicFunction(x)
+    y3 = NOT_logicFunction(y1)
+    final_x = np.array([y2, y3])
+    finalOutput = AND_logicFunction(final_x)
+    return finalOutput
+
+test1 = np.array([0, 1])
+test2 = np.array([1, 1])
+test3 = np.array([0, 0])
+test4 = np.array([1, 0])
+print("XOR({}, {}) = {}".format(0, 1, XOR_logicFunction(test1)))
+print("XOR({}, {}) = {}".format(1, 1, XOR_logicFunction(test2)))
+print("XOR({}, {}) = {}".format(0, 0, XOR_logicFunction(test3)))
+print("XOR({}, {}) = {}".format(1, 0, XOR_logicFunction(test4)))
+    </pre><hr>
+    <pre>
+        #singlelayer
+import pandas as pd
+import math as math
+import numpy
+def actiF(t):
+    return 1/(1+math.exp(-t))
+w=[1,2,3,2]
+x=[1,0,1,0]
+b=0.5
+n=1
+target = numpy.bitwise_xor.reduce(x)
+print(target)
+def summ(w,x):
+    t=0
+    for i in range(len(w)):
+        t+=w[i]*x[i]
+    return t
+y=actiF(summ(w,x))
+print(y)
+def er(target,y):
+    error=target-y
+    return error
+print(er(target,y))
+def weiup(w,error):
+    for i in range(len(w)):
+        w[i]=w[i]+n*error*x[i]
+    return w
+for i in range(5):
+    p=summ(w,x)
+    q=actiF(p)
+    r=er(target,q)
+    if r!=0:
+        w=weiup(w,r)
+    elif r==0:
+        break
+print(w)
+print(target)
+print(q)
+
+    </pre><hr>
+    <pre>
+        #multilyer
+        #MULTI LAYER PERCEPTRON TRAINING RULE
+
+import math
+import random
+
+a = 0.01
+
+def activation(y):
+    s = 1 / (1 + math.exp(-y))
+    return s
+
+def updateWeights(x, e, w):
+    r = [wi - a * e * xi for xi, wi in zip(x, w)]
+    return r
+
+print("Enter the no.of input nodes:")
+i = int(input())
+print("Enter the no.of nodes in hidden layers:")
+h = int(input())
+print("Enter the no.of output nodes:")
+o = int(input())
+
+x = [0] * i
+w = [random.uniform(0.0, 1.0) for _ in range(i * h)]
+v = [random.uniform(0.0, 1.0) for _ in range(h * o)]
+
+for j in range(i):
+    x[j] = int(input("Enter input for node {}: ".format(j)))
+
+p = [0] * h
+q = [0] * o  # Output layer values
+
+# Forward pass through the hidden layer
+for k in range(h):
+    for j in range(i):
+        p[k] += w[k * i + j] * x[j]
+
+# Forward pass through the output layer
+for k in range(o):
+    for j in range(h):
+        q[k] += v[k * h + j] * activation(p[j])
+
+print("Hidden layer outputs:", p)
+print("Output layer outputs:", q)
+    </pre><hr>
+
+</body>
+</html>

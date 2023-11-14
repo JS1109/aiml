@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <pre>
+        #kmeans
+import pandas as pd
+import numpy as np
+import math
+import matplotlib.pyplot as plt
+
+
+df = pd.read_csv('iris.csv')
+
+def initialize_centroids(data, k):
+  np.random.seed(0)
+  centroids = data.sample(n=k)
+  return centroids.iloc[:, :-1].values
+
+def euclidean_distance(point1, point2):
+  return math.sqrt(sum((p1 - p2) ** 2 for p1, p2 in zip(point1, point2)))
+
+def assign_to_clusters(data, centroids, k):
+    clusters = [[] for _ in range(k)]
+    for index, row in data.iterrows():
+        point = row[:-1].values
+        distances = [euclidean_distance(point, centroid) for centroid in centroids]
+        closest_cluster = distances.index(min(distances))
+        clusters[closest_cluster].append(point)
+    return clusters
+
+def update_centroids(clusters):
+    new_centroids = []
+    for cluster in clusters:
+        if cluster:
+            new_centroid = np.mean(cluster, axis=0)
+            new_centroids.append(new_centroid)
+    return np.array(new_centroids)
+
+def has_converged(centroids, new_centroids, iteration, max_iterations):
+    if iteration >= max_iterations:
+        return True
+    return np.array_equal(centroids, new_centroids)
+
+def k_means(data, k, max_iterations):
+    centroids = initialize_centroids(data, k)
+    iteration = 0
+
+    while True:
+        clusters = assign_to_clusters(data, centroids, k)
+        new_centroids = update_centroids(clusters)
+
+
+
+        if has_converged(centroids, new_centroids, iteration, max_iterations):
+            break
+
+        centroids = new_centroids
+        iteration += 1
+
+    return centroids, clusters
+
+def plot_clusters(centroids, clusters):
+    colors = ['r', 'g', 'b']
+    for i, cluster in enumerate(clusters):
+        cluster = np.array(cluster)
+        plt.scatter(cluster[:, 0], cluster[:, 1], c=colors[i], label=f'Cluster {i + 1}')
+    plt.scatter(centroids[:, 0], centroids[:, 1], s=100, c='black', marker='X', label='Centroids')
+    plt.xlabel('Sepal Length')
+    plt.ylabel('Sepal Width')
+    plt.legend()
+    plt.show()
+
+centroids, clusters = k_means(df, 3, 100)
+plot_clusters(centroids, clusters)
+
+    </pre><hr>
+    <pre>
+        #em
+import numpy as np
+import pandas as pd
+import math
+import matplotlib.pyplot as plt
+
+def load_iris_data():
+    url = "https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data"
+    column_names = ['sepal_length', 'sepal_width', 'petal_length', 'petal_width', 'class']
+    data = pd.read_csv(url, names=column_names)
+    return data
+
+def initialize_parameters(data, k):
+    n_samples, n_features = data.shape
+    np.random.seed(0)
+
+    means = data.sample(n=k).values[:, :-1]
+
+    covariances = [np.identity(n_features - 1) * 1e-3 for _ in range(k)]
+
+    mixing_coefficients = [1.0 / k] * k
+
+    return means, covariances, mixing_coefficients
+
+def calculate_probabilities(data, means, covariances, mixing_coefficients):
+    n_samples, _ = data.shape
+    k = len(means)
+    probabilities = np.zeros((n_samples, k))
+
+    for i in range(k):
+        for j in range(n_samples):
+            diff = data.iloc[j, :-1].values - means[i]
+            inv_covariance = np.linalg.inv(covariances[i])
+            exponent = -0.5 * np.dot(np.dot(diff, inv_covariance), diff)
+            prob = math.exp(exponent) / (2 * math.pi * np.sqrt(np.linalg.det(covariances[i])))
+            probabilities[j, i] = mixing_coefficients[i] * prob
+
+    return probabilities
+
+def update_parameters(data, probabilities):
+    n_samples, _ = data.shape
+    k = probabilities.shape[1]
+
+    means = np.dot(probabilities.T, data.iloc[:, :-1].values) / np.sum(probabilities, axis=0)[:, np.newaxis]
+
+    covariances = []
+    for i in range(k):
+        diff = data.iloc[:, :-1].values - means[i]
+        weighted_diff = (diff.T * probabilities[:, i]).T
+        cov = np.dot(weighted_diff.T, diff) / np.sum(probabilities[:, i])
+        covariances.append(cov)
+
+    mixing_coefficients = np.mean(probabilities, axis=0) / n_samples
+
+    return means, covariances, mixing_coefficients
+
+def has_converged(means, new_means, tolerance=1e-4):
+    return np.all(np.abs(means - new_means) < tolerance)
+
+def em_algorithm(data, k, max_iterations):
+    means, covariances, mixing_coefficients = initialize_parameters(data, k)
+    iteration = 0
+
+    while iteration < max_iterations:
+        probabilities = calculate_probabilities(data, means, covariances, mixing_coefficients)
+        new_means, new_covariances, new_mixing_coefficients = update_parameters(data, probabilities)
+
+        if has_converged(means, new_means):
+            break
+
+        means, covariances, mixing_coefficients = new_means, new_covariances, new_mixing_coefficients
+        iteration += 1
+
+    return means, covariances, mixing_coefficients
+
+def plot_clusters(data, means):
+    plt.scatter(data['sepal_length'], data['sepal_width'], c='b', label='Data Points')
+    plt.scatter(means[:, 0], means[:, 1], s=100, c='r', marker='X', label='Cluster Centers')
+    plt.xlabel('Sepal Length')
+    plt.ylabel('Sepal Width')
+    plt.legend()
+    plt.show()
+
+
+iris_data = load_iris_data()
+k = 3
+max_iterations = 100
+means, _, _ = em_algorithm(iris_data, k, max_iterations)
+plot_clusters(iris_data, means)
+    </pre><hr>
+    <pre>
+        #bfs
+        graph = {
+            'A' : ['B','C'],
+            'B' : ['D', 'E'],
+            'C' : ['F', 'G'],
+            'D' : [],
+            'E' : [],
+            'F' : [],
+            'G' : []
+          }
+          
+          visited = []
+          queue = []
+          
+          def bfs(visited, graph, node):
+            queue.append(node)
+            print("Frontier: ",end=" ")
+            print(queue)
+            visited.append(node)
+            print("Explored:",end=" ")
+            print(visited)
+          
+          
+            while queue:
+              m = queue.pop(0)
+              print(m)
+          
+              for neighbour in graph[m]:
+                if neighbour not in visited:
+                  queue.append(neighbour)
+                  print("Frontier: ",end=" ")
+                  print(queue)
+                  visited.append(neighbour)
+                  print("Explored:",end=" ")
+                  print(visited)
+          
+          
+          print("Following is the Breadth-First Search")
+          bfs(visited, graph, 'A')
+          
+    </pre><hr>
+    <pre>
+        #dfs
+        graph = {
+            'A' : ['B','C'],
+            'B' : ['D', 'E'],
+            'C' : ['F', 'G'],
+            'D' : [],
+            'E' : [],
+            'F' : [],
+            'G' : []
+        }
+        
+        
+        visited = []
+        frontier=[]
+        def dfs(visited, graph, node):
+            if node not in visited:
+                print (node)
+                visited.append(node)
+                print("explored: " ,end=" ")
+                print(visited)
+                for neighbour in graph[node]:
+                  frontier.insert(len(visited)-1,neighbour)
+                  print("frontier:" ,end=" ")
+                  print(frontier)
+                  dfs(visited, graph, neighbour)
+        
+        
+        dfs(visited, graph, 'A')
+    </pre><hr>
+    <pre>
+        #dls
+        graph = {
+            'A' : ['B','C'],
+            'B' : ['D', 'E'],
+            'C' : ['F', 'G'],
+            'D' : ['H','I'],
+            'E' : ['J','K'],
+            'F' : [],
+            'G' : []
+        }
+        
+        depth = {'A' : 0, 'B' : 1,'C' : 1,'D' : 2,'E' : 2,'F' : 2,'G' : 2 ,'H':3, 'I':3, 'J':3 , 'K':3}
+        depth_limit =2
+        visited = []
+        frontier=[]
+        def dls(visited, graph, node):
+            if node not in visited and depth[node]<=depth_limit:
+                print (node)
+                visited.append(node)
+                # print("explored: " ,end=" ")
+                # print(visited)
+                for neighbour in graph[node]:
+                  frontier.insert(len(visited)-1,neighbour)
+                  # print("frontier:" ,end=" ")
+                  # print(frontier)
+                  dls(visited, graph, neighbour)
+        
+        
+        dls(visited, graph, 'A')
+    </pre><hr>
+    <pre>
+        #idds
+        #iddfs
+import sys
+
+graph = {
+    'A' : ['B','C'],
+    'B' : ['D', 'E'],
+    'C' : ['F', 'G'],
+    'D' : ['H','I'],
+    'E' : ['J','K'],
+    'F' : [],
+    'G' : [],
+    'H' : [] ,
+    'I' : [],
+    'J': [],
+    'K': []}
+limit=0
+stop=True
+search= 'H'
+depth = {'A' : 0, 'B' : 1,'C' : 1,'D' : 2,'E' : 2,'F' : 2,'G' : 2 ,'H':3, 'I':3, 'J':3 , 'K':3}
+
+
+def dls(visited, graph, node,limit):
+    if node not in visited and depth[node]<=limit:
+        print(node)
+        visited.append(node)
+        if node == search :
+          stop=False
+          sys.exit(0)
+        # print("explored: " ,end=" ")
+        # print(visited)
+        for neighbour in graph[node]:
+          if depth[neighbour]<=limit:
+            frontier.insert(len(visited)-1,neighbour)
+            # print("frontier:" ,end=" ")
+            # print(frontier)
+            dls(visited, graph, neighbour,limit)
+
+while stop:
+  visited = []
+  frontier=[]
+  print("\n")
+  dls(visited,graph,'A',limit)
+  limit=limit+1
+    </pre><hr>
+    <pre>
+        #kmeans and em
+        from sklearn.cluster import KMeans
+from sklearn import preprocessing
+from sklearn.mixture import GaussianMixture
+from sklearn.datasets import load_iris
+import sklearn.metrics as sm
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+dataset=load_iris()
+X=pd.DataFrame(dataset.data)
+X.columns=['Sepal_Length','Sepal_Width','Petal_Length','Petal_Width']
+y=pd.DataFrame(dataset.target)
+y.columns=['Targets']
+plt.figure(figsize=(14,7))
+colormap=np.array(['gold','purple','red'])
+
+# REAL PLOT
+plt.subplot(1,3,1)
+plt.scatter(X.Petal_Length,X.Petal_Width,c=colormap[y.Targets],s=40)
+plt.title('Real')
+
+# GMM PLOT
+scaler=preprocessing.StandardScaler()
+scaler.fit(X)
+xsa=scaler.transform(X)
+xs=pd.DataFrame(xsa,columns=X.columns)
+gmm=GaussianMixture(n_components=3)
+gmm.fit(xs)
+y_cluster_gmm=gmm.predict(xs)
+plt.subplot(1,3,3)
+plt.scatter(X.Petal_Length,X.Petal_Width,c=colormap[y_cluster_gmm],s=40)
+plt.title('EM Classification')
+
+# K-PLOT
+plt.subplot(1,3,2)
+model=KMeans(n_clusters=3)
+model.fit(X)
+predY=np.choose(model.labels_,[0,1,2]).astype(np.int64)
+plt.scatter(X.Petal_Length,X.Petal_Width,c=colormap[predY],s=40)
+plt.title('KMeans')
+    </pre>
+</body>
+</html>
